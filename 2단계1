@@ -1,0 +1,211 @@
+# 초기 샘플 프롬프트 데이터 (리스트와 딕셔너리 구조)
+prompts = [
+    {
+        "title": "블로그 글 작성 페르소나",
+        "content": "너는 전문 IT 블로거야. 독자의 눈높이에 맞춰 친절하고 이해하기 쉬운 어조로 글을 작성해줘.",
+        "category": "페르소나",
+        "favorite": True
+    },
+    {
+        "title": "미드저니 판타지 배경 키워드",
+        "content": "A mystical floating castle in the sky, glowing crystals, ethereal lighting, cinematic, 8k, unreal engine 5 --ar 16:9",
+        "category": "이미지 생성",
+        "favorite": False
+    },
+    {
+        "title": "유튜브 요약 텍스트 추출",
+        "content": "제공된 유튜브 대본을 바탕으로 핵심 내용 3가지와 인사이트를 불렛 포인트로 요약해줘.",
+        "category": "텍스트 생성",
+        "favorite": False
+    }
+]
+
+CATEGORIES = ["텍스트 생성", "이미지 생성", "영상 생성", "페르소나", "자동화", "기타"]
+
+def show_menu():
+    """메인 메뉴를 출력하고 사용자 선택을 반환합니다."""
+    print("\n" + "="*30)
+    print("      💡 프롬프트 관리 프로그램")
+    print("="*30)
+    print("1. 프롬프트 추가")
+    print("2. 전체 프롬프트 목록 보기")
+    print("3. 카테고리별 조회")
+    print("4. 프롬프트 검색")
+    print("5. 프롬프트 상세 보기")
+    print("6. 즐겨찾기 관리 (추가/해제/모보기)")
+    print("7. 프로그램 종료")
+    print("="*30)
+    choice = input("메뉴 번호를 입력하세요: ").strip()
+    return choice
+
+def add_prompt():
+    """새로운 프롬프트를 등록합니다."""
+    print("\n--- [새 프롬프트 추가] ---")
+    title = input("제목을 입력하세요: ").strip()
+    while not title:
+        print("제목은 비워둘 수 없습니다.")
+        title = input("제목을 입력하세요: ").strip()
+        
+    content = input("내용을 입력하세요: ").strip()
+    while not content:
+        print("내용은 비워둘 수 없습니다.")
+        content = input("내용을 입력하세요: ").strip()
+        
+    print("\n[카테고리 목록]")
+    for idx, cat in enumerate(CATEGORIES, 1):
+        print(f"{idx}. {cat}")
+    
+    cat_input = input("카테고리 번호를 선택하거나 직접 입력하세요: ").strip()
+    
+    # 숫자로 입력한 경우 카테고리 목록에서 선택
+    if cat_input.isdigit() and 1 <= int(cat_input) <= len(CATEGORIES):
+        category = CATEGORIES[int(cat_input) - 1]
+    elif cat_input in CATEGORIES:
+        category = cat_input
+    else:
+        category = cat_input if cat_input else "기타"
+        
+    new_item = {
+        "title": title,
+        "content": content,
+        "category": category,
+        "favorite": False
+    }
+    prompts.append(new_item)
+    print(f"✨ 성공적으로 추가되었습니다! (카테고리: {category})")
+
+def show_list():
+    """저장된 모든 프롬프트 목록을 출력합니다."""
+    print("\n--- [전체 프롬프트 목록] ---")
+    if not prompts:
+        print("등록된 프롬프트가 없습니다.")
+        return
+    
+    for idx, p in enumerate(prompts, 1):
+        star = "⭐" if p["favorite"] else "☆"
+        print(f"{idx}. [{p['category']}] {p['title']} {star}")
+
+def show_category():
+    """카테고리별로 프롬프트를 조회합니다."""
+    print("\n--- [카테고리별 조회] ---")
+    print("카테고리 목록:", ", ".join(CATEGORIES))
+    selected_cat = input("조회할 카테고리를 입력하세요: ").strip()
+    
+    filtered = [p for p in prompts if p["category"] == selected_cat]
+    
+    if not filtered:
+        print(f"'{selected_cat}' 카테고리에 해당하는 프롬프트가 없습니다.")
+        return
+        
+    print(f"\n[{selected_cat} 카테고리 검색 결과]")
+    for idx, p in enumerate(prompts, 1):
+        if p["category"] == selected_cat:
+            star = "⭐" if p["favorite"] else "☆"
+            print(f"- {idx}. {p['title']} {star}")
+
+def search_prompt():
+    """키워드로 제목이나 내용을 검색합니다."""
+    print("\n--- [프롬프트 검색] ---")
+    keyword = input("검색할 키워드를 입력하세요: ").strip()
+    if not keyword:
+        print("검색어가 입력되지 않았습니다.")
+        return
+        
+    results = []
+    for idx, p in enumerate(prompts, 1):
+        if keyword in p["title"] or keyword in p["content"]:
+            results.append((idx, p))
+            
+    if not results:
+        print(f"'{keyword}'에 대한 검색 결과가 없습니다.")
+        return
+        
+    print(f"\n🔍 총 {len(results)}개의 프롬프트를 찾았습니다.")
+    for idx, p in results:
+        star = "⭐" if p["favorite"] else "☆"
+        print(f"{idx}. [{p['category']}] {p['title']} {star}")
+
+def view_detail():
+    """선택한 프롬프트의 상세 내용을 출력합니다."""
+    show_list()
+    if not prompts:
+        return
+        
+    choice = input("\n상세 볼 프롬프트 번호를 입력하세요: ").strip()
+    if not choice.isdigit():
+        print("올바른 숫자를 입력해주세요.")
+        return
+        
+    idx = int(choice) - 1
+    if 0 <= idx < len(prompts):
+        p = prompts[idx]
+        star = "⭐ (즐겨찾기됨)" if p["favorite"] else "☆ (해제됨)"
+        print("\n" + "="*40)
+        print(f"제목: {p['title']}")
+        print(f"카테고리: {p['category']}")
+        print(f"즐겨찾기: {star}")
+        print("-" * 40)
+        print(f"내용:\n{p['content']}")
+        print("="*40)
+    else:
+        print("존재하지 않는 번호입니다.")
+
+def manage_favorites():
+    """즐겨찾기를 추가/해제하거나 즐겨찾기 목록만 모아봅니다."""
+    print("\n--- [즐겨찾기 관리] ---")
+    print("1. 즐겨찾기 목록 모아보기")
+    print("2. 프롬프트 즐겨찾기 추가/해제")
+    sub_choice = input("원하는 메뉴 번호를 입력하세요: ").strip()
+    
+    if sub_choice == "1":
+        print("\n--- [⭐ 즐겨찾기 모아보기] ---")
+        favs = [p for p in prompts if p["favorite"]]
+        if not favs:
+            print("즐겨찾기된 프롬프트가 없습니다.")
+            return
+        for idx, p in enumerate(prompts, 1):
+            if p["favorite"]:
+                print(f"{idx}. [{p['category']}] {p['title']}")
+                
+    elif sub_choice == "2":
+        show_list()
+        choice = input("\n즐겨찾기를 변경할 프롬프트 번호를 입력하세요: ").strip()
+        if not choice.isdigit():
+            print("올바른 숫자를 입력해주세요.")
+            return
+            
+        idx = int(choice) - 1
+        if 0 <= idx < len(prompts):
+            prompts[idx]["favorite"] = not prompts[idx]["favorite"]
+            status = "추가" if prompts[idx]["favorite"] else "해제"
+            print(f"✨ '{prompts[idx]['title']}' 프롬프트가 즐겨찾기 {status}되었습니다.")
+        else:
+            print("존재하지 않는 번호입니다.")
+    else:
+        print("잘못된 입력입니다.")
+
+def main():
+    """프로그램 실행 메인 루프"""
+    print("🚀 프롬프트 관리 프로그램이 시작되었습니다!")
+    while True:
+        choice = show_menu()
+        if choice == "1":
+            add_prompt()
+        elif choice == "2":
+            show_list()
+        elif choice == "3":
+            show_category()
+        elif choice == "4":
+            search_prompt()
+        elif choice == "5":
+            view_detail()
+        elif choice == "6":
+            manage_favorites()
+        elif choice == "7":
+            print("\n프로그램을 종료합니다. 안녕히 가세요! 👋")
+            break
+        else:
+            print("❌ 잘못된 입력입니다. 1부터 7까지의 숫자를 입력해주세요.")
+
+if __name__ == "__main__":
+    main()
