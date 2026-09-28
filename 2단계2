@@ -1,0 +1,81 @@
+import argparse
+import datetime
+import json
+import os
+import sys
+from typing import Dict, Any, List, Tuple
+import requests
+from dotenv import load_dotenv
+from openai import OpenAI
+
+# .env 파일 로드
+load_dotenv()
+
+
+def check_api_keys() -> Tuple[str, str]:
+    """API 키 존재 여부 확인 및 가져오기"""
+    openai_key = os.getenv("OPENAI_API_KEY")
+    kakao_key = os.getenv("KAKAO_REST_API_KEY")
+
+    if not openai_key or not kakao_key:
+        print("[오류] API 키가 설정되지 않았습니다.")
+        print("'.env' 파일을 작성하거나 아래 환경변수를 설정해주세요.")
+        print("  - OPENAI_API_KEY")
+        print("  - KAKAO_REST_API_KEY")
+        print("\n자세한 방법은 README.md를 참조하세요.")
+        sys.exit(1)
+
+    return openai_key, kakao_key
+
+
+def validate_date(date_text: str) -> str:
+    """YYYY-MM-DD 날짜 형식 검증"""
+    try:
+        datetime.datetime.strptime(date_text, "%Y-%m-%d")
+        return date_text
+    except ValueError:
+        print(f"[오류] 올바르지 않은 날짜 형식입니다: '{date_text}'")
+        print("사용법: python main.py -date YYYY-MM-DD (예: 2026-05-15)")
+        sys.exit(1)
+
+
+def get_llm_recommendation(client: OpenAI, date_str: str, errors: List[str]) -> Dict[str, Any]:
+    """LLM을 통해 여행 지역 1차 추천 및 구조화된 JSON 데이터 추출 (재시도 로직 포함)"""
+    print(f"[*] OpenAI API 호출 중: {date_str} 기준 여행지 추천 생성...")
+
+    system_prompt = (
+        "너는 대한민국 전문 여행 컨설턴트야. "
+        "응답은 오직 파싱 가능한 JSON 형태로만 출력해야 해. Markdown 코드 블록(```json ...)도 없이 순수 JSON만 출력해."
+    )
+    
+    user_prompt = f"""
+여행 예정 일자: {date_str}
+
+위 날짜에 한국에서 여행하기 좋은 추천 도시 1곳을 선정해줘.
+반드시 아래 키를 갖춘 JSON 구조로 작성해줘:
+{{
+    "recommended_city": "도시명 (예: 제주, 강릉, 경주)",
+    "weather": "해당 시기 일반적 날씨 요약 1~2문장",
+    "events": ["행사/축제 후보 1", "행사/축제 후보 2"],
+    "reason": "해당 도시를 추천하는 이유 2~4문장"
+}}
+"""
+
+    for attempt in range(2):
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.7,
+            )
+            raw_content = response.choices[0].message.content.strip()
+            
+            # Markdown 래핑 제거 처리
+            if raw_content.startswith("```"):
+                lines = raw_content.split("\n")
+                if lines[0].startswith("```"):
+                    lines = lines[1:]
+                if lines and lines[-1].startswith("
